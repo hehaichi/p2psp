@@ -13,6 +13,18 @@
 #define _1_ // Temporal!!!
 
 #include "peer_ims.h"
+#include <fstream>
+#include <cstdlib>
+#include <iterator>
+#include <string>
+#include <boost/lexical_cast.hpp>
+using boost::lexical_cast;
+#include <boost/uuid/uuid.hpp>
+using boost::uuids::uuid;
+#include <boost/uuid/uuid_generators.hpp>
+using boost::uuids::random_generator;
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 namespace p2psp {
 
@@ -59,6 +71,12 @@ namespace p2psp {
 
     sendto_counter_ = -1;
   }
+  
+  //Write chunk data to file
+    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    std::string fname = "Peer"+boost::posix_time::to_iso_extended_string(now)+"-"+lexical_cast<std::string>((random_generator())());
+	std::fstream file(fname,std::ios::out);
+	std::ostream_iterator<char> output_iterator(file);
 
   PeerIMS::~PeerIMS() {}
 
@@ -459,6 +477,8 @@ namespace p2psp {
   void PeerIMS::PlayChunk(int chunk) {
 #ifdef _1_
     try {
+    std::copy((chunks_[chunk % buffer_size_].data.begin()),
+             (chunks_[chunk % buffer_size_].data.end()),output_iterator);
     if(chunk == -1) {
     write(player_socket_, buffer(std::vector<char>(1024,0)));
     }
@@ -467,6 +487,7 @@ namespace p2psp {
       }
     } catch (std::exception e) {
       TRACE("Player disconnected!");
+      file.close();
       player_alive_ = false;
     }
 #endif
